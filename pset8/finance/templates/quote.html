@@ -1,0 +1,56 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+Quote
+{% endblock title %}
+
+{% block main %}
+<h1>Quote current stock prices</h1>
+
+{% if quote_val != None %}
+
+<div class="container" id="card1">
+    <div class="row justify-content-center">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ quote_val['name'] }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">{{ quote_val['symbol'] }}</h6>
+                <p class="card-text">Latest Price: ${{ quote_val['price'] }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+<form action="/quote" method="POST" class="needs-validation" novalidate>
+    <div class="form-group">
+        <input autocomplete="off" autofocus class="form-control" name="q" placeholder="Stock" type="text" required>
+        <div class="invalid-feedback">
+            You must input a stock to check
+        </div>
+    </div>
+    <button class="btn btn-primary" type="submit">Submit</button>
+</form>
+<script>
+    // https://getbootstrap.com/docs/4.1/components/forms/#validation
+
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+    (function () {
+        // 'use strict';
+        window.addEventListener('load', function () {
+            // Fetch all the forms we want to apply custom Bootstrap validation styles to
+            var forms = document.getElementsByClassName('needs-validation');
+            // Loop over them and prevent submission
+            var validation = Array.prototype.filter.call(forms, function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+</script>
+{% endblock main %}

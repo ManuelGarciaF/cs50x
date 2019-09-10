@@ -1,0 +1,9 @@
+{
+  "stmt": "SELECT symbol, SUM(amount), time FROM purchases WHERE buyerId=4 GROUP BY symbol;",
+  "header": ["symbol", "SUM(amount)", "time"],
+  "rows": [
+    ["GOOG", "1", "2019-09-10 18:03:02"],
+    ["NFLX", "6", "2019-09-10 17:43:27"],
+    ["TSLA", "9", "2019-09-10 18:01:07"]
+  ]
+}
