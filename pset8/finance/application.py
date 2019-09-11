@@ -52,8 +52,6 @@ def index():
         "SELECT symbol, SUM(amount), time FROM purchases WHERE buyerId=:id GROUP BY symbol;",
         id=session["user_id"])
 
-# {'symbol': 'NFLX', 'SUM(amount)': 2, 'time': '2019-09-10 18:07:40'}
-
     rows = list()
     total = 0
     for line in sql_query:
@@ -64,7 +62,7 @@ def index():
         total += symbol['price'] * line['shares']
 
     user = db.execute(
-        "SELECT cash FROM users WHERE id=:id",
+        "SELECT cash FROM users WHERE id=:id;",
         id=session["user_id"])
     
     return render_template('index.html', rows=rows, total=total, balance=float(user[0]['cash']))
@@ -100,7 +98,7 @@ def buy():
 
         # check that user has enough balance
         if balance < value:
-            db.execute("ROLLBACK;")
+            # db.execute("ROLLBACK;")
             return apology("Not enough balance.")
 
         # update balance
@@ -156,7 +154,7 @@ def login():
             return apology("must provide password", 403)
 
         # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = :username",
+        rows = db.execute("SELECT * FROM users WHERE username = :username;",
                           username=request.form.get("username"))
 
         # Ensure username exists and password is correct
@@ -214,19 +212,19 @@ def register():
             return redirect(url_for('register'))
             
         # query the database for the same username
-        existing_user = db.execute("SELECT username FROM users WHERE username = :username",
+        existing_user = db.execute("SELECT username FROM users WHERE username = :username;",
                                     username=request.form.get('username'))
 
         # if username does not exist in the database
         if len(existing_user) == 0:
             # add a new user with the information from the form
             db.execute(
-                "INSERT INTO users ('username','hash') VALUES (:username,:hash)",
+                "INSERT INTO users ('username','hash') VALUES (:username,:hash);",
                 username=request.form.get('username'),
                 hash=generate_password_hash(request.form.get('password')) )
             
             user_id = db.execute(
-                "SELECT id FROM users WHERE username = :username",
+                "SELECT id FROM users WHERE username = :username;",
                 username=request.form.get('username'))
             session["user_id"] = user_id[0]["id"]
             return redirect(url_for('index'))
@@ -244,7 +242,44 @@ def register():
 @login_required
 def sell():
     """Sell shares of stock"""
-    return apology("TODO")
+    if request.method == 'POST':
+        symbol = request.form.get('symbol')
+        shares = int(request.form.get('shares'))
+
+        if not symbol:
+            return apology('invalid symbol')    
+        if not shares:
+            return apology('invalid number')
+
+        available_shares = db.execute(
+            "SELECT SUM(amount) FROM purchases WHERE buyerId=:id AND symbol=:symbol GROUP BY symbol;",
+            id=session["user_id"],
+            symbol=symbol)
+
+        if len(available_shares) > 0 and shares > available_shares[0]['SUM(amount)']:
+            return apology("You don't have enough shares")
+
+        curr_value = lookup(symbol)['price']
+
+        db.execute(
+            "INSERT INTO purchases ('buyerId','symbol','value','amount','time') VALUES (:id,:symbol,:value,:amount,datetime('now', 'localtime'));",
+            id=session["user_id"],
+            symbol=symbol,
+            value=(-curr_value),
+            amount=(-shares))
+
+        db.execute(
+            "UPDATE users SET cash = cash + :price WHERE Id = :id;",
+            id=session["user_id"],
+            price=(curr_value * shares))
+
+        return redirect(url_for('index'))
+
+    symbols = db.execute(
+        "SELECT symbol FROM purchases WHERE buyerId=:id GROUP BY symbol;",
+        id=session["user_id"])
+
+    return render_template('sell.html', symbols=symbols)
 
 
 def errorhandler(e):

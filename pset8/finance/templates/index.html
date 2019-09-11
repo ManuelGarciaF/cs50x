@@ -16,22 +16,27 @@
     </thead>
     <tbody>
         {% for row in rows %}
-        <tr>
-            <td scope="row">{{ row.time }}</td>
-            <td>{{ row.symbol }}</td>
-            <td>{{ row.shares }}</td>
-            <td>{{ row.value | usd}}</td>
-            <td>{{ (row.shares * row.value) | usd }}</td>
-        </tr>
+            {% if row.shares > 0 %}
+                <tr>
+                    <td scope="row">{{ row.time }}</td>
+                    <td>{{ row.symbol }}</td>
+                    <td>{{ row.shares }}</td>
+                    <td>{{ row.value | usd}}</td>
+                    <td>{{ (row.shares * row.value) | usd }}</td>
+                </tr>
+            {% endif %}
         {% endfor %}
         <tr>
             <td></td>
             <td></td>
             <td></td>
-            <td>balance: {{ balance | usd}}</td>
+            <td></td>
             <td><b>{{ total | usd}}</b></td>
         </tr>
     </tbody>
 </table>
+
+<h5>Your current balance is {{ balance |usd}}</h5>
+<h4>Your total balance is {{ (total + balance) | usd}}</h4>
 
 {% endblock main %}
