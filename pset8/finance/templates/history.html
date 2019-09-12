@@ -1,0 +1,36 @@
+{% extends 'layout.html' %}
+
+{% block title %}History{% endblock title %}
+
+{% block main %}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Stock Symbol</th>
+            <th>Amount</th>
+            <th>Value</th>
+            <th>Type</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for transaction in transactions %}
+            <tr>
+                <td scope="row">{{ transaction.time }}</td>
+                <td>{{ transaction.symbol }}</td>
+                <td>{{ transaction.amount }}</td>
+                {% if transaction.isBuy %}
+                <td style="color: #44c233">{{ transaction.value | usd}}</td>
+                <td style="color: #44c233">Bought</td>
+                {% else %}
+                <td style="color: #e01d1d">{{ transaction.value | usd }}</td>
+                <td style="color: #e01d1d">Sold</p>                
+                {% endif %}
+            </tr>
+        {% endfor %}
+
+    </tbody>
+</table>
+
+{% endblock main %}

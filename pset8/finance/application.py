@@ -68,6 +68,22 @@ def index():
     return render_template('index.html', rows=rows, total=total, balance=float(user[0]['cash']))
 
 
+@app.route("/add", methods=["POST"])
+@login_required
+def add():
+    """Add balance to account"""
+    amount = int(request.form.get('add_amount'))
+    if amount < 1:
+        return apology("Invalid Amount")
+
+    db.execute(
+        "UPDATE users SET cash = cash + :amount WHERE id = :id",
+        amount=amount,
+        id=session["user_id"])
+
+    return redirect(url_for('index'))
+
+
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
@@ -125,14 +141,38 @@ def buy():
 @app.route("/check", methods=["GET"])
 def check():
     """Return true if username available, else false, in JSON format"""
-    return jsonify("TODO")
+    username = str(request.args.get('username'))
+
+    if not username:
+        return jsonify(True)
+
+    uname_matches = db.execute(
+        "SELECT username FROM users WHERE username = :username;",
+        username=username.lower())
+
+    if len(uname_matches):
+        return jsonify(True)
+    else:
+        return jsonify(False)
+
+    return jsonify(username)
 
 
 @app.route("/history")
 @login_required
 def history():
     """Show history of transactions"""
-    return apology("TODO")
+
+    # Get transactions from the user.
+    transactions = db.execute(
+        "SELECT symbol, value, amount, time FROM purchases WHERE buyerId = :id ORDER BY time",
+        id=session["user_id"])
+
+    for transaction in transactions:
+        # Set isBuy to True if the transaction value is positive.
+        transaction['isBuy'] = True if transaction['value'] > 0 else False
+
+    return render_template('history.html', transactions=transactions)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -155,7 +195,7 @@ def login():
 
         # Query database for username
         rows = db.execute("SELECT * FROM users WHERE username = :username;",
-                          username=request.form.get("username"))
+                          username=request.form.get("username").lower())
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
@@ -200,33 +240,41 @@ def register():
 
     # if user reached via POST 
     if request.method == 'POST':
+        username = request.form.get('username').lower()
+        password = request.form.get('password')
+        confirmation = request.form.get('confirmation')
+
         # check if he provided a username
-        if not request.form.get('username'):
+        if not username:
             return apology("You must provide a username")
+
         # check if he provided a password and a confirmation
-        if not request.form.get('password') or not request.form.get('confirmation'):
+        if not password or not confirmation:
             return apology("You must provide a password")
+
         # check if password and confirmation match
-        if not request.form.get('password') == request.form.get('confirmation'):
+        if not password == confirmation:
             flash("Your passwords don't match")
             return redirect(url_for('register'))
             
         # query the database for the same username
-        existing_user = db.execute("SELECT username FROM users WHERE username = :username;",
-                                    username=request.form.get('username'))
+        existing_user = db.execute(
+            "SELECT username FROM users WHERE username = :username;",
+            username=username)
 
         # if username does not exist in the database
         if len(existing_user) == 0:
             # add a new user with the information from the form
             db.execute(
                 "INSERT INTO users ('username','hash') VALUES (:username,:hash);",
-                username=request.form.get('username'),
-                hash=generate_password_hash(request.form.get('password')) )
+                username=username,
+                hash=generate_password_hash(password) )
             
             user_id = db.execute(
                 "SELECT id FROM users WHERE username = :username;",
-                username=request.form.get('username'))
+                username=username)
             session["user_id"] = user_id[0]["id"]
+
             return redirect(url_for('index'))
 
         else:
@@ -242,25 +290,31 @@ def register():
 @login_required
 def sell():
     """Sell shares of stock"""
+    # Check if user reached via POST.
     if request.method == 'POST':
         symbol = request.form.get('symbol')
         shares = int(request.form.get('shares'))
 
+        # Error checking.
         if not symbol:
             return apology('invalid symbol')    
         if not shares:
             return apology('invalid number')
 
+        # Get available shares from user.
         available_shares = db.execute(
             "SELECT SUM(amount) FROM purchases WHERE buyerId=:id AND symbol=:symbol GROUP BY symbol;",
             id=session["user_id"],
             symbol=symbol)
 
+        # Check user has enough shares.
         if len(available_shares) > 0 and shares > available_shares[0]['SUM(amount)']:
             return apology("You don't have enough shares")
 
+        # lookup current value of chosen stock.
         curr_value = lookup(symbol)['price']
 
+        # Add a new purchase with negative values to signify sell.
         db.execute(
             "INSERT INTO purchases ('buyerId','symbol','value','amount','time') VALUES (:id,:symbol,:value,:amount,datetime('now', 'localtime'));",
             id=session["user_id"],
@@ -268,6 +322,7 @@ def sell():
             value=(-curr_value),
             amount=(-shares))
 
+        # Update user's cash accordingly.
         db.execute(
             "UPDATE users SET cash = cash + :price WHERE Id = :id;",
             id=session["user_id"],
@@ -275,8 +330,10 @@ def sell():
 
         return redirect(url_for('index'))
 
+    # Get all symbols from stocks the user has invested in.
+    # Filtering out symbols that have and amount of 0 is done in html.
     symbols = db.execute(
-        "SELECT symbol FROM purchases WHERE buyerId=:id GROUP BY symbol;",
+        "SELECT symbol, SUM(amount) FROM purchases WHERE buyerId=:id GROUP BY symbol;",
         id=session["user_id"])
 
     return render_template('sell.html', symbols=symbols)

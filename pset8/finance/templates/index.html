@@ -39,4 +39,14 @@
 <h5>Your current balance is {{ balance |usd}}</h5>
 <h4>Your total balance is {{ (total + balance) | usd}}</h4>
 
+<form action="/add" class="needs-validation" style="padding-top: 2rem;" method="post" novalidate>
+    <div class="form-group">
+      <label for="add_amount">Add balance</label>
+      <input type="number" min="1" class="form-control" name="add_amount" id="add_amount" placeholder="Amount" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Add</button>
+</form>
+
+<script src="/static/validate.js"></script>
+
 {% endblock main %}

@@ -6,12 +6,14 @@
 
 <h1>Sell stocks</h1>
 
-<form action="/sell" method="post">
+<form action="/sell" class="needs-validation" method="post" novalidate>
     <div class="form-group">
         <select class="form-control" name="symbol" required>
             <option disabled selected>Stock symbol</option>
         {% for symbol in symbols %}
-            <option value="{{ symbol['symbol'] }}">{{ symbol['symbol'] }}</option>
+            {% if symbol["SUM(amount)"] > 0 %}
+                <option value="{{ symbol['symbol'] }}">{{ symbol['symbol'] }}</option>            
+            {% endif %}
         {% endfor %}
         </select>
     </div>
@@ -20,5 +22,7 @@
     </div>
     <button type="submit" class="btn btn-primary">Sell</button>
 </form>
+
+<script type="application/javascript" src="/static/validate.js"></script>
 
 {% endblock main %}
