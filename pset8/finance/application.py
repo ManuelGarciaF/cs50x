@@ -293,7 +293,11 @@ def sell():
     # Check if user reached via POST.
     if request.method == 'POST':
         symbol = request.form.get('symbol')
-        shares = int(request.form.get('shares'))
+
+        try:
+            shares = int(request.form.get('shares'))
+        except:
+            return apology('Invalid Number')
 
         # Error checking.
         if not symbol:
